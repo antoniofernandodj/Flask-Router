@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "router"
+version = "0.1.0"
+description = ""
+authors = ["Itemize <itemizebi@itemize.com.br>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+quart = "^0.18.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
