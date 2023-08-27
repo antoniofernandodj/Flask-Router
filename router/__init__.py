@@ -8,7 +8,7 @@ modules_visited = set()
 
 
 
-class FlaskRouting:
+class FlaskRouter:
     def __init__(self, app):
         self.app = app
 
