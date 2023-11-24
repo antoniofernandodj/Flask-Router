@@ -4,6 +4,7 @@ import pkgutil
 import typing as t
 from contextlib import suppress
 import logging
+import traceback
 
 logger = logging.getLogger('FLASK_ROUTER')
 
@@ -19,11 +20,38 @@ App = t.Union[Flask, Quart]
 Module = t.Any
 
 class FlaskRouter:
+
+    """
+    A class to register routes for a Flask or Quart application.
+
+    Attributes:
+        app (App): The Flask or Quart application to register routes for.
+        modules_visited (set): A set of modules that have been visited.
+
+    """
+
     def __init__(self, app: App):
+
+        """
+        The constructor for FlaskRouter class.
+
+        Parameters:
+            app (App): The Flask or Quart application to register routes for.
+        """
+
         self.app = app
         self.modules_visited: t.Set = set()
 
-    def register_pages(self, methods:list=['GET'], root_name:str='pages'):
+    def register_routes(self, methods:list=['GET'], root_name:str='pages'):
+
+        """
+        The function to register routes for a given root module.
+
+        Parameters:
+            methods (list): The list of HTTP methods to register. Defaults to ['GET'].
+            root_name (str): The name of the root module. Defaults to 'pages'.
+        """
+
         try:
             pages = importlib.import_module(f'{root_name}')
         except ImportError as error:
@@ -45,6 +73,16 @@ class FlaskRouter:
             package_path: str,
         ):
 
+        """
+        Checks and registers a package if it hasn't been visited yet.
+
+        Parameters:
+            root_name (str): The name of the root package.
+            current_package (Module): The current package being processed.
+            methods (list): List of HTTP methods to register for the routes.
+            package_path (str): The filesystem path of the package.
+        """
+
         prefix = package_path.split(f'/{root_name}')[1]
         name = current_package.__name__.split('.')[-1]
 
@@ -54,7 +92,7 @@ class FlaskRouter:
                 name = 'index'
 
             checked_prefix = '/' + self.check_path(path=prefix)
-            name = self.check_name(prefix, methods)
+            name = self.check_package_name(prefix, methods)
 
             view_func = importlib.import_module(f'{current_package.__name__}').index
             
@@ -77,7 +115,19 @@ class FlaskRouter:
                     mod, package_path, current_package, root_name, methods
                 )
 
-    def check_name(self, prefix: str, methods: list):
+    def check_package_name(self, prefix: str, methods: list):
+
+        """
+        Checks and formats the package name.
+
+        Parameters:
+            prefix (str): The prefix for the package name.
+            methods (list): List of HTTP methods for the route.
+
+        Returns:
+            complete_name (str): The formatted name of the package.
+        """
+
         name = prefix.replace("/", ".")[1:]
         name = name.replace('_', ':')
         
@@ -98,7 +148,19 @@ class FlaskRouter:
         complete_name = 'index' if complete_name.startswith(':') else complete_name
         return complete_name
     
-    def check_mod_name(self, prefix: str, methods: list):
+    def check_module_name(self, prefix: str, methods: list):
+
+        """
+        Checks and formats the module name.
+
+        Parameters:
+            prefix (str): The prefix for the module name.
+            methods (list): List of HTTP methods for the route.
+
+        Returns:
+            complete_name (str): The formatted name of the module.
+        """
+
         name = prefix.replace("/", ".")
         name = name.replace('_', ':')
         
@@ -121,6 +183,17 @@ class FlaskRouter:
         return complete_name
 
     def check_path(self, path: str):
+
+        """
+        Checks and formats a given path.
+
+        Parameters:
+            path (str): The path to be checked and formatted.
+
+        Returns:
+            strip_name (str): The formatted path.
+        """
+
         replacements = {
             '(': '<',
             ')': '>',
@@ -136,6 +209,18 @@ class FlaskRouter:
         return strip_name
 
     def process_module(self, mod, package_path, current_package, root_name, methods):
+        
+        """
+        Processes a module, registering its routes if it's a package or a module.
+
+        Parameters:
+            mod: The module to be processed.
+            package_path (str): The filesystem path of the package.
+            current_package (Module): The current package being processed.
+            root_name (str): The name of the root package.
+            methods (list): List of HTTP methods to register for the routes.
+        """
+        
         try:
             if mod.ispkg:
                 mod_path = os.path.join(package_path, mod.name)
@@ -155,7 +240,7 @@ class FlaskRouter:
                 prefix = '/'.join(mod.__name__.split('.')[1:])  # type: ignore
 
                 checked_prefix = '/' + self.check_path(path=prefix)
-                name = self.check_mod_name(prefix, methods)
+                name = self.check_module_name(prefix, methods)
 
                 view_func = mod.index
 
@@ -170,7 +255,6 @@ class FlaskRouter:
 
         except Exception as error:
 
-            import traceback
             traceback.print_exc()
 
             logger.error(f"Error while processing {mod.name}: {error}")

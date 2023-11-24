@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 app = Quart(__name__)
 router = FlaskRouter(app)
-router.register_pages(root_name='routes', methods=['GET', 'POST'])
+router.register_routes(root_name='routes', methods=['GET', 'POST'])
 auth.init_app(app)
 # Base.metadata.create_all(engine)
 app.run()
